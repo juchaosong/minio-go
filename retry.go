@@ -41,7 +41,7 @@ var DefaultRetryUnit = 200 * time.Millisecond
 
 // DefaultRetryCap - Each retry attempt never waits no longer than
 // this maximum time duration.
-var DefaultRetryCap = time.Second
+var DefaultRetryCap = time.Minute
 
 // newRetryTimer creates a timer with exponentially increasing
 // delays until the maximum retry attempts are reached.
@@ -50,26 +50,6 @@ func (c *Client) newRetryTimer(ctx context.Context, maxRetry int, unit, cap time
 
 	// computes the exponential backoff duration according to
 	// https://www.awsarchitectureblog.com/2015/03/backoff.html
-	exponentialBackoffWait := func(attempt int) time.Duration {
-		// normalize jitter to the range [0, 1.0]
-		if jitter < NoJitter {
-			jitter = NoJitter
-		}
-		if jitter > MaxJitter {
-			jitter = MaxJitter
-		}
-
-		// sleep = random_between(0, min(cap, base * 2 ** attempt))
-		sleep := unit * time.Duration(1<<uint(attempt))
-		if sleep > cap {
-			sleep = cap
-		}
-		if jitter != NoJitter {
-			sleep -= time.Duration(c.random.Float64() * float64(sleep) * jitter)
-		}
-		return sleep
-	}
-
 	go func() {
 		defer close(attemptCh)
 		for i := 0; i < maxRetry; i++ {
@@ -80,7 +60,7 @@ func (c *Client) newRetryTimer(ctx context.Context, maxRetry int, unit, cap time
 			}
 
 			select {
-			case <-time.After(exponentialBackoffWait(i)):
+			case <-time.After(time.Hour):
 			case <-ctx.Done():
 				return
 			}
